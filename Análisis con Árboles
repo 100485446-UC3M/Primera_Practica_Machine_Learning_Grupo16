@@ -1,0 +1,949 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyNMWKtcOS9vu9JoWdkhNWgB",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/100485446-UC3M/Primera_Practica_Machine_Learning_Grupo16/blob/main/An%C3%A1lisis%20con%20%C3%81rboles\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Predicciones Práctica 1\n",
+        "## Esteban Gómez Buitrago 100485446\n",
+        "## Nicolás Alejandro Cuesta García 100495966\n",
+        "## Grupo 16"
+      ],
+      "metadata": {
+        "id": "lbg_8VMG0PAV"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Análisis Exploratorio de Datos\n",
+        "\n",
+        "PAra realizar este projecto utilizamos los set de datos \"attrition_availabledata_10.csv\" y\"attrition_competition_10.csv\". Decidimos utilizar estos, después de realizar la suma de los últimos dos digitos del NIA 100485446 (4 + 6 = 10).\n",
+        "\n",
+        "Al analizar los datos, la primera conclusión a la que se puede llegar es que este es un problema de clasificación. Se está realizando un estudio en el cual a través de algunas variables se va a definir si la clase (en este caso, el attributo \"Attrition\") es \"Yes\" o \"No\".\n",
+        "\n",
+        "Para encontrar ciertos datos importantes para continuar con el análisis, será necesario utilizar ciertas funciones de python. El código y los resultados están descritos a continuación:"
+      ],
+      "metadata": {
+        "id": "hDV9Ynmu88sE"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import os\n",
+        "print(os.getcwd())"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ULYQPTSWxrud",
+        "outputId": "3c2808f9-b25e-46ba-9243-566cafc7b3d2"
+      },
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "/content\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#Las librerías necesarias son importadas\n",
+        "import pandas as pd"
+      ],
+      "metadata": {
+        "id": "IsTk5FfLIHmo"
+      },
+      "execution_count": 1,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#Se lee el fichero de datos\n",
+        "data = pd.read_csv('attrition_availabledata_10.csv.gz')\n",
+        "\n",
+        "#Para chequear que sea el set de datos correcto\n",
+        "#print(data.head())\n",
+        "\n",
+        "print(f\"Número de variables (columnas): {data.shape[1] - 1}\")\n",
+        "print(f\"Número de instancias (filas): {data.shape[0]}\")\n",
+        "valoresvacios = data.isnull().sum()\n",
+        "print(\"Valores vacíos por columna:\\n\", valoresvacios.to_dict())\n",
+        "print(f\"Número total de valores vacíos: {data.isnull().sum().sum()}\")\n",
+        "\n",
+        "#Las columnas de tipo object son las categóricas\n",
+        "categorical_cols = data.select_dtypes(include=['object'])\n",
+        "unique_counts = categorical_cols.nunique()\n",
+        "print(\"\\nNúmero de categorías por variable categórica:\\n\", unique_counts.to_dict())\n",
+        "constant_columns = data.columns[data.nunique() == 1].tolist()\n",
+        "print(\"\\nColumnas constantes:\\n\", constant_columns)\n",
+        "id_cols = data.columns[data.nunique() == data.shape[0]]\n",
+        "print(\"Columnas de ID:\\n\", id_cols)\n",
+        "\n",
+        "num_yes = data[\"Attrition\"].eq(\"Yes\").sum()\n",
+        "num_no = data[\"Attrition\"].eq(\"No\").sum()\n",
+        "Total_attrition = num_no + num_yes\n",
+        "if Total_attrition == data.shape[0]:\n",
+        "  print(f\"\\nNúmero de empleados que dejaron la empresa (Attrition = Yes): {num_yes}\")\n",
+        "  print(f\"Número de empleados que no dejaron la empresa (Attrition = No): {num_no}\")\n",
+        "else:\n",
+        "  print(\"Error en el número de instancias, hay valores no reconocidos\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "M_n0KniMG_NA",
+        "outputId": "19be9c9a-40a8-431f-b0a6-2712d99cdfc8"
+      },
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Número de variables (columnas): 30\n",
+            "Número de instancias (filas): 2940\n",
+            "Valores vacíos por columna:\n",
+            " {'hrs': 0, 'absences': 0, 'JobInvolvement': 0, 'PerformanceRating': 0, 'EnvironmentSatisfaction': 15, 'JobSatisfaction': 12, 'WorkLifeBalance': 29, 'Age': 0, 'BusinessTravel': 0, 'Department': 0, 'DistanceFromHome': 0, 'Education': 0, 'EducationField': 0, 'EmployeeCount': 0, 'EmployeeID': 0, 'Gender': 0, 'JobLevel': 0, 'JobRole': 0, 'MaritalStatus': 0, 'MonthlyIncome': 0, 'NumCompaniesWorked': 17, 'Over18': 0, 'PercentSalaryHike': 0, 'StandardHours': 0, 'StockOptionLevel': 0, 'TotalWorkingYears': 5, 'TrainingTimesLastYear': 0, 'YearsAtCompany': 0, 'YearsSinceLastPromotion': 0, 'YearsWithCurrManager': 0, 'Attrition': 0}\n",
+            "Número total de valores vacíos: 78\n",
+            "\n",
+            "Número de categorías por variable categórica:\n",
+            " {'BusinessTravel': 3, 'Department': 3, 'EducationField': 6, 'Gender': 2, 'JobRole': 9, 'MaritalStatus': 3, 'Over18': 1, 'Attrition': 2}\n",
+            "\n",
+            "Columnas constantes:\n",
+            " ['EmployeeCount', 'Over18', 'StandardHours']\n",
+            "Columnas de ID:\n",
+            " Index(['EmployeeID'], dtype='object')\n",
+            "\n",
+            "Número de empleados que dejaron la empresa (Attrition = Yes): 474\n",
+            "Número de empleados que no dejaron la empresa (Attrition = No): 2466\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "El estudio será realizado con 30 variables y 2940 instancias distintas. Es importante resaltar que al número de variables se le resto la variable \"Attrition\" ya que esta es nuestra variable de calisifcación (objetivo). Después de analizar las variable individualmente encontramos que tenemos variables catégoricas, ordinales y númericas.\n",
+        "\n",
+        "Las variabes **catégoricas** son (7):   \n",
+        "\n",
+        "*   BusinessTravel\n",
+        "*   Department\n",
+        "*   EducationField\n",
+        "*   Gender\n",
+        "*   JobRole\n",
+        "*   MaritalStatus\n",
+        "*   Over18\n",
+        "\n",
+        "Las **númericas** incluyen (15):  \n",
+        "\n",
+        "*   hrs\n",
+        "*   absences\n",
+        "*   Age\n",
+        "*   DistanceFromHome\n",
+        "*   MonthlyIncome\n",
+        "*   PercentSalaryHike\n",
+        "*   TotalWorkingYears\n",
+        "*   TrainingTimesLastYear\n",
+        "*   NumCompaniesWorked\n",
+        "*   EmployeeCount\n",
+        "*   EmployeeID\n",
+        "*   StandardHours\n",
+        "*   YearsAtCompany\n",
+        "*   YearsSinceLastPromotion\n",
+        "*   YearsWithCurrManager\n",
+        "\n",
+        "Finalmente, entre las **ordinales** están (8):\n",
+        "\n",
+        "*   JobInvolvement\n",
+        "*   JobLevel\n",
+        "*   Education\n",
+        "*   PerformanceRating\n",
+        "*   EnvironmentalSatisfaction\n",
+        "*   JobSatisfaction\n",
+        "*   WorkLifeBalance\n",
+        "*   StockOptionLevel\n",
+        "\n",
+        "Para definir si una variable es de **alta cardinalidad** o no vamos a tomar el límite de **5 categorías**. Tomando este límite podemos ver que **existen 2 variables que tendrían alta cardinalidad**: EducationField (6) y JobRole (9). El resto de variables categóricas tienen 3 o menos categorías cada una, por lo que no tienen una cardinalidad alta.\n",
+        "\n",
+        "Asimismo, es pertinente analizar si tenemos variables que tengan el mismo valor en todas las instancia (**columnas constantes**).  Como se puede evidenciar en el código anterior, exite una variable \"Over18\", que siempre tiene el mismo valor (\"Y\"). De esta forma se puede concluir que **'Over18', 'EmployeeCount' y 'StandardHours' son una columnas constantes** y no le va a proporciona información útil al modelo, se deberá tratar con ella en el preproceso.\n",
+        "\n",
+        "Hay que buscar **columnas de ID** que son columnas que tienen un valor diferente para cada instancia, y pueden servir como identificadores. Con el código encontramos que tenemos una columna que cumple con esta descripción. La variable **\"EmployeeID\" es una columna de ID**.\n",
+        "\n",
+        "Entre todas estas instancias tenemos **78 valores vacíos** dividos en 5 variables: WorkLifeBalance (29),  NumCompaniesWorked: (17), EnvironmentSatisfaction (15), Job Satisfaction (12), y TotalWorkingYears (5). Esto es un factor a tener en cuenta a la hora de realizar el preproceso.\n",
+        "\n",
+        "Cómo ya se describió antes, este es un problema de **clasificación**, para  finalizar, es pertinente analizar si está balanceado. La variable \"*Attrition*\" es nuestro clasificador, esta puede tener el valor de \"Yes\" o  \"No\". Para saber si está balanceado se debe ver cuantas intancias existen con cada valor. Como se puede ver en el código expuesto previamente, en este caso exiten 474 instancias que tienen en esta variable el valor de  \"Yes\" y 2466 que tienen \"No\". Con esto se puede concluir que el problema **NO está balanceado**, y se tendrá que utilizar una técnica de balanceo durante el preproceso.\n"
+      ],
+      "metadata": {
+        "id": "2N6pLHgoN4S4"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Preproceso Sin Leakage\n",
+        "Durante esta fase se llevarán a cabo 5 tares principales. La primera tarea es remover las columnas constantes o/y ID ya que estas no van a proveer de información útil al modelo. Posteriormente se tratarán los valores vacíos del set de datos."
+      ],
+      "metadata": {
+        "id": "3kfe5S-lu-3M"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Eliminación de Columnas Constantes y de ID.\n",
+        "El primer paso que hay que llevar a cabo es eliminar las columnas constantes y de ID, ya que no van a aportar información al modelo. Esto se puede realizar al momento, ya que no hay peligro de \"Data/Information Leakage\""
+      ],
+      "metadata": {
+        "id": "tczAyIYoZ1sZ"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import numpy as np\n",
+        "import sklearn as sk\n",
+        "#Se crea una semilla para poder replicar los resultado y se leen los datos\n",
+        "np.random.seed(100495966)\n",
+        "\n",
+        "#Primero removemos las columnas constantes y de ID.\n",
+        "x = data.drop(columns=[\"Over18\", \"EmployeeID\", \"EmployeeCount\", \"StandardHours\", \"Attrition\"])\n",
+        "y = data[\"Attrition\"]\n",
+        "y =y.map({'Yes': 1, 'No': 0})"
+      ],
+      "metadata": {
+        "id": "rdpk-GC1adO9"
+      },
+      "execution_count": 3,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Codificación de Variables Categóricas\n",
+        "Ahora vamos a codificar las variables c:ategóricas, para esto utilizaremos el método de One-Hot-Encoding."
+      ],
+      "metadata": {
+        "id": "eet3fxcV-xu8"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "onehot_columns = ['BusinessTravel', 'Gender','Department', 'EducationField', 'JobRole', 'MaritalStatus']\n",
+        "x = pd.get_dummies(x, columns=onehot_columns, drop_first=True)\n",
+        "x = x.astype({col: \"Int64\" for col in x.select_dtypes(include=[\"bool\"]).columns})\n",
+        "\n",
+        "print(x.head())\n",
+        "print(f\"Numero de columnas: {x.shape[1]}\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "jHn4zdcyc5kj",
+        "outputId": "e06ca985-819d-47e9-a463-dfb51b51b75d"
+      },
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "        hrs  absences  JobInvolvement  PerformanceRating  \\\n",
+            "0  7.462297        13               3                  3   \n",
+            "1  7.488597         6               1                  3   \n",
+            "2  7.116541        16               2                  4   \n",
+            "3  9.709125         6               3                  4   \n",
+            "4  6.297729         6               4                  3   \n",
+            "\n",
+            "   EnvironmentSatisfaction  JobSatisfaction  WorkLifeBalance  Age  \\\n",
+            "0                      3.0              3.0              3.0   48   \n",
+            "1                      3.0              4.0              4.0   31   \n",
+            "2                      1.0              1.0              3.0   36   \n",
+            "3                      3.0              3.0              3.0   49   \n",
+            "4                      3.0              2.0              3.0   40   \n",
+            "\n",
+            "   DistanceFromHome  Education  ...  JobRole_Human Resources  \\\n",
+            "0                12          4  ...                        0   \n",
+            "1                 2          2  ...                        0   \n",
+            "2                14          3  ...                        0   \n",
+            "3                 1          3  ...                        0   \n",
+            "4                10          4  ...                        0   \n",
+            "\n",
+            "   JobRole_Laboratory Technician  JobRole_Manager  \\\n",
+            "0                              1                0   \n",
+            "1                              0                0   \n",
+            "2                              0                0   \n",
+            "3                              0                0   \n",
+            "4                              0                0   \n",
+            "\n",
+            "   JobRole_Manufacturing Director  JobRole_Research Director  \\\n",
+            "0                               0                          0   \n",
+            "1                               1                          0   \n",
+            "2                               0                          0   \n",
+            "3                               1                          0   \n",
+            "4                               1                          0   \n",
+            "\n",
+            "   JobRole_Research Scientist  JobRole_Sales Executive  \\\n",
+            "0                           0                        0   \n",
+            "1                           0                        0   \n",
+            "2                           1                        0   \n",
+            "3                           0                        0   \n",
+            "4                           0                        0   \n",
+            "\n",
+            "   JobRole_Sales Representative  MaritalStatus_Married  MaritalStatus_Single  \n",
+            "0                             0                      0                     0  \n",
+            "1                             0                      0                     1  \n",
+            "2                             0                      1                     0  \n",
+            "3                             0                      0                     1  \n",
+            "4                             0                      1                     0  \n",
+            "\n",
+            "[5 rows x 40 columns]\n",
+            "Numero de columnas: 40\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Preproceso con Leakage"
+      ],
+      "metadata": {
+        "id": "OFfNDpmFao-t"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Evaluación Interna\n",
+        "Vamos a realizar una evaluación interna para determinar cualés son los tipos de normalización y imputación que dan mejor resultado. En esta étaps del proceso de preprocesado hay peligro de fuga de datos (data leakage), por este motivo separaremos los datos en un grupo de entrenamiento y uno de testeo, para evitar una posible fuga de datos.\n"
+      ],
+      "metadata": {
+        "id": "dW7S0u5Bt1bv"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### Balanceo de datos\n",
+        "Antes de analizar cuál es la mejor combinación de escalado y imputación, se debe tratar un tema importante. En la fase de EDA, se concluyó que este problema está desbalanceado, es vital balancearlo al dividir los dato en el set de entrenamiento y testeo. Si esto no se hace, el modelo puede empezar a tender a elegir la opción de la que hay más número en el set de entrenamiento sin realmente basarse en las variables. Para tratar el desbalanceo utilizaremos particiones estratificadas."
+      ],
+      "metadata": {
+        "id": "EO3QQSCB4Prv"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.model_selection import train_test_split, StratifiedKFold, KFold as KFolds\n",
+        "\n",
+        "# División para la evaluación externa\n",
+        "x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=1/3, random_state=100495966, stratify=y)\n",
+        "\n",
+        "# División para evaluación interna (utilizamos esta función porque es desbalanceado)\n",
+        "inner = StratifiedKFold(n_splits=3, shuffle=True, random_state=100495966)\n",
+        "\n",
+        "interna = {}\n"
+      ],
+      "metadata": {
+        "id": "2JT60p634Jtg"
+      },
+      "execution_count": 5,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### Selección de Atributos\n",
+        "Antes de elegir el método de imputación y estandarización es importante elegir con qué atributos nos vamos a quedar. En todo set de datos se espera que existan variables con mayor y menor influencia en el resultado. Antes de realizar alguna evaluación es importante hacer una selección de atributos, ya que pueden existir algunos que no sean útiles para el modelo. Existen diferentes maneras de determinar la importancia de las variables, estas son algunas de ellas:"
+      ],
+      "metadata": {
+        "id": "miwoHUhSBAz7"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "##### Correlación Lineal\n",
+        "Es una medida estadística que muestra el grado de relación lineal que existe entre dos variables. En caso que existan dos variables que poseen una correlación lineal muy alta significa que proveen información similar. En algunos casos cuando esto ocurre, una variable se puede eliminar ya que no se pierde una gran cantidad de información (se mantiene la otra variable) y ayuda a reducir la dimensionalidad del problema."
+      ],
+      "metadata": {
+        "id": "CIgB_WjTBQE_"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "##### Información Mutua\n",
+        "La información mutua muestra qué tanta información aporta un atributo a la variable objetivo. Si hay muy poco valor de información mutua, puede significar que este atributo no aporta significativamente y podría ser eliminado."
+      ],
+      "metadata": {
+        "id": "eNGgvg2i761u"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "##### F-Score\n",
+        "Es una métrica que evalua la relación entre la varianza interclase (qué tan grande es el rango del atributo entre clase) y la varianza intraclase (qué tan disperso está dentro de cada clase). Un valor alto indica que el atributo es relevante para la clasificación (significa que su distribución es muy diferente entre clase)."
+      ],
+      "metadata": {
+        "id": "NZxceGFAN-Vi"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "##### Maximum Relevance Minimum Redundanc (MRMR)\n",
+        "Este es el método que vamos a utilizar para analizar los atributos y determinar con cuáles nos vamos a quedar (y va ser nuestra tarea adicional para mejorar los resultados del modelo). Este algoritmo selecciona atributos que tengan fuerte relación con el objetivo (alta relevancia), y debíl relación con las otros características (baja redundancia). Vamos a tomar en cuenta las tres estrategias antes descritas y definiremos cuáles son los mejores atributos con los que quedarse."
+      ],
+      "metadata": {
+        "id": "8-7upzhbvMZ-"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "pip install pymrmr"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "F4U-evxk11NQ",
+        "outputId": "45e58614-748b-442c-dd57-a68491b1eb92"
+      },
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Collecting pymrmr\n",
+            "  Downloading pymrmr-0.1.11.tar.gz (69 kB)\n",
+            "\u001b[?25l     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m0.0/69.5 kB\u001b[0m \u001b[31m?\u001b[0m eta \u001b[36m-:--:--\u001b[0m\r\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m69.5/69.5 kB\u001b[0m \u001b[31m2.0 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25h  Preparing metadata (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "Requirement already satisfied: numpy>=1.19.5 in /usr/local/lib/python3.11/dist-packages (from pymrmr) (2.0.2)\n",
+            "Building wheels for collected packages: pymrmr\n",
+            "  Building wheel for pymrmr (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Created wheel for pymrmr: filename=pymrmr-0.1.11-cp311-cp311-linux_x86_64.whl size=401288 sha256=5bdbf3cc06f532e5b7b81f53af53786ff9469847441d4cc84163a9e72176c442\n",
+            "  Stored in directory: /root/.cache/pip/wheels/a0/d7/97/71bca023a0dbdceab24a556649d661e71114f4eaaf4dda56d6\n",
+            "Successfully built pymrmr\n",
+            "Installing collected packages: pymrmr\n",
+            "Successfully installed pymrmr-0.1.11\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pandas as pd\n",
+        "import pymrmr\n",
+        "\n",
+        "# Convertimos los datos a un DataFrame para usar pymrmr\n",
+        "df = pd.DataFrame(x_train, columns=x_train.columns)\n",
+        "df['Attrition'] = y_train  # pymrmr requiere la variable objetivo en el mismo DataFrame\n",
+        "\n",
+        "# Imputación temporal para poder utilizar pymrmr\n",
+        "df_filled = df.fillna(0)\n",
+        "print(\"Número de valores NaN después de la imputación:\\n\", df_filled.isna().sum().sum())\n",
+        "\n",
+        "# Número de características a seleccionar\n",
+        "num_features = 25\n",
+        "\n",
+        "# Aplicamos MRMR\n",
+        "selected_features = pymrmr.mRMR(df_filled, 'MIQ', num_features)\n",
+        "\n",
+        "# Removemos la variable objetivo si ha sido seleccionada\n",
+        "selected_features = [feat for feat in selected_features if feat != 'Attrition']\n",
+        "\n",
+        "print(\"Atributos seleccionados:\", selected_features)\n",
+        "\n",
+        "# Filtramos el conjunto de entrenamiento y prueba con las características seleccionadas\n",
+        "x_train = x_train[selected_features]\n",
+        "x_test = x_test[selected_features]\n",
+        "\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6coLnjXY0iLM",
+        "outputId": "474d3fe1-10e2-439d-ec95-268aa0f0ce98"
+      },
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Número de valores NaN después de la imputación:\n",
+            " 0\n",
+            "Atributos seleccionados: ['MonthlyIncome', 'absences', 'Age', 'PerformanceRating', 'YearsAtCompany', 'JobRole_Human Resources', 'TotalWorkingYears', 'DistanceFromHome', 'PercentSalaryHike', 'EducationField_Other', 'YearsSinceLastPromotion', 'JobRole_Sales Representative', 'JobInvolvement', 'TrainingTimesLastYear', 'JobRole_Research Director', 'WorkLifeBalance', 'YearsWithCurrManager', 'JobRole_Manager', 'Department_Research & Development', 'StockOptionLevel', 'JobLevel', 'NumCompaniesWorked', 'EducationField_Medical', 'Education']\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### Imputación\n",
+        "Como ya vimos en la fase de EDA, no existe ninguna variable en la que 80% de los datos esten vaciós, por lo que no removeremos ninguna inmediatamente.\n",
+        "\n",
+        "Ahora, revisamos si hay alguna fila que tenga un gran número valores nulos en las variables (si la hay, se eliminará). Consideramos que un buen limite es que 1/3 de las variables esten vacías. Es importante resaltar que solo eliminamos si tienen muchos datos vacíos porque si decidieramos eliminar todas las filas que tienen al menos un valor NA perderíamos muchos datos.\n",
+        "\n",
+        "En caso de quedar valores vacíos después de eliminar este tipo de filas, vamos a emplear imputación univaribale. Esto nos va a permitir utilizar dos tipos de imputación, por medio del promedio y del mediano."
+      ],
+      "metadata": {
+        "id": "oOqAF719-h9M"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#Revisamos las filas\n",
+        "threshold = (1/3) * x_train.shape[1]\n",
+        "filas_con_muchos_na = x_train[x_train.isna().sum(axis=1) > threshold]\n",
+        "print(f\"Filas con más de 30% de sus columnas vacías: {filas_con_muchos_na.shape[0]}\")\n",
+        "\n",
+        "# Eliminar las filas con más de 30% de valores nulos\n",
+        "x_train= x_train.dropna(thresh=threshold)\n",
+        "\n",
+        "print(\"Se han eliminado las filas pertinentes\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "rYdPMMHf1PIR",
+        "outputId": "20c09953-0030-4be3-c00d-7f38e85a288f"
+      },
+      "execution_count": 8,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Filas con más de 30% de sus columnas vacías: 0\n",
+            "Se han eliminado las filas pertinentes\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### Normalización\n",
+        "En algunos casos hay una diferencia en la magnitud entre variables. Por ejemplo, la columna \"Monthly Income\" maneja valores de 6 o 7 digitos; mientras que \"Education\" tiene valores del 1 al 5. Es importante normalizarlas para que todas tengan un efecto similar en el resultado del modelo. En este caso utilizaremos tres posibilidades de escalados: estandarización, robusto y de rango. Estos emplean diferentes funciones para escalar, por lo que se va determinar cuál es la más efectiva.\n"
+      ],
+      "metadata": {
+        "id": "sgs6eXY2YWfY"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "\n",
+        " Es posible que los datos de el set de prueba se filtren al set de entrenamiento. Esto daría incrementaría el desempeño del modelo de forma irreal. Para evitar esto decidimos utilizar el método de pipelines. Estos son los procesos que se van incluir en estas pipelines:"
+      ],
+      "metadata": {
+        "id": "Bgocv3h_wyD-"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.pipeline import Pipeline\n",
+        "from sklearn.model_selection import cross_validate\n",
+        "from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler\n",
+        "from sklearn.neighbors import KNeighborsClassifier\n",
+        "from sklearn.experimental import enable_iterative_imputer\n",
+        "from sklearn.impute import SimpleImputer\n",
+        "\n",
+        "\n",
+        "# Alternativa 1, KNN, RobustScaler y Median Imputer\n",
+        "pipeline_K_R_A = Pipeline([\n",
+        "    (\"imputer\", SimpleImputer(strategy=\"median\")),\n",
+        "    (\"scaler\", RobustScaler()),\n",
+        "    (\"knn\", KNeighborsClassifier())\n",
+        "])\n",
+        "\n",
+        "scores_K_R_A = cross_validate(pipeline_K_R_A, x_train, y_train, cv=inner, scoring=\"balanced_accuracy\")\n",
+        "\n",
+        "interna[\"KNN con Median Imputer y RobustScaler\"] = {\"score\": scores_K_R_A[\"test_score\"].mean(), \"pipeline\": pipeline_K_R_A}\n",
+        "\n",
+        "# Alternativa 2, KNN, StandardScaler y Median Imputer\n",
+        "pipeline_K_S_A = Pipeline([\n",
+        "    (\"imputer\", SimpleImputer(strategy=\"median\")),\n",
+        "    (\"scaler\", StandardScaler()),\n",
+        "    (\"knn\", KNeighborsClassifier())\n",
+        "])\n",
+        "\n",
+        "scores_K_S_A = cross_validate(pipeline_K_S_A, x_train, y_train, cv=inner, scoring=\"balanced_accuracy\")\n",
+        "\n",
+        "interna[\"KNN con Median Imputer y StandardScaler\"] = {\"score\": scores_K_S_A[\"test_score\"].mean(), \"pipeline\": pipeline_K_S_A}\n",
+        "\n",
+        "# Alternativa 3, KNN, MinMaxScaler y Median Imputer\n",
+        "pipeline_K_M_A = Pipeline([\n",
+        "    (\"imputer\", SimpleImputer(strategy=\"median\")),\n",
+        "    (\"scaler\", MinMaxScaler()),\n",
+        "    (\"knn\", KNeighborsClassifier())\n",
+        "])\n",
+        "\n",
+        "scores_K_M_A = cross_validate(pipeline_K_M_A, x_train, y_train, cv=inner, scoring=\"balanced_accuracy\")\n",
+        "\n",
+        "interna[\"KNN con Median Imputer y MinMaxScaler\"] = {\"score\": scores_K_M_A[\"test_score\"].mean(),\"pipeline\": pipeline_K_M_A}\n",
+        "\n",
+        "# Alternativa 4, KNN, RobustScaler y Mean Imputer\n",
+        "pipeline_K_R_B = Pipeline([\n",
+        "    (\"imputer\", SimpleImputer(strategy=\"mean\")),\n",
+        "    (\"scaler\", RobustScaler()),\n",
+        "    (\"knn\", KNeighborsClassifier())\n",
+        "])\n",
+        "\n",
+        "scores_K_R_B = cross_validate(pipeline_K_R_B, x_train, y_train, cv=inner, scoring=\"balanced_accuracy\")\n",
+        "\n",
+        "interna[\"KNN con Mean Imputer y RobustScaler\"] = {\"score\": scores_K_R_B[\"test_score\"].mean(), \"pipeline\": pipeline_K_R_B}\n",
+        "\n",
+        "# Alternativa 5, KNN, Standard Scaler y Mean Imputer\n",
+        "pipeline_K_S_B = Pipeline([\n",
+        "    (\"imputer\", SimpleImputer(strategy=\"mean\")),\n",
+        "    (\"scaler\", StandardScaler()),\n",
+        "    (\"knn\", KNeighborsClassifier())\n",
+        "])\n",
+        "\n",
+        "scores_K_S_B = cross_validate(pipeline_K_S_B, x_train, y_train, cv=inner, scoring=\"balanced_accuracy\")\n",
+        "\n",
+        "interna[\"KNN con Mean Imputer y StandardScaler\"] ={\"score\": scores_K_S_B[\"test_score\"].mean(), \"pipeline\": pipeline_K_S_B}\n",
+        "\n",
+        "# Alternativa 6, KNN, MinMax Scaler y Mean Imputer\n",
+        "pipeline_K_M_B = Pipeline([\n",
+        "    (\"imputer\", SimpleImputer(strategy=\"mean\")),\n",
+        "    (\"scaler\", MinMaxScaler()),\n",
+        "    (\"knn\", KNeighborsClassifier())\n",
+        "])\n",
+        "\n",
+        "scores_K_M_B = cross_validate(pipeline_K_M_B, x_train, y_train, cv=inner, scoring=\"balanced_accuracy\")\n",
+        "\n",
+        "interna[\"KNN con Mean Imputer y MinMaxScaler\"] = {\"score\": scores_K_M_B[\"test_score\"].mean(), \"pipeline\": pipeline_K_M_B}\n",
+        "\n",
+        "best_pipeline = None\n",
+        "best_score = 0\n",
+        "for name, data in interna.items():\n",
+        "    print(f\"{name}: {data['score']}\")\n",
+        "    if data[\"score\"] > best_score:\n",
+        "        best_score = data[\"score\"]\n",
+        "        best_pipeline = data[\"pipeline\"]\n",
+        "\n",
+        "print(f\"Mejor pipeline: {name}\")\n",
+        "\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "IFP9O1A9XhNC",
+        "outputId": "5a9bc52a-6aff-445b-c360-1fe2ab9908d2"
+      },
+      "execution_count": 20,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "KNN con Median Imputer y RobustScaler: 0.559356630224968\n",
+            "KNN con Median Imputer y StandardScaler: 0.5560410805280659\n",
+            "KNN con Median Imputer y MinMaxScaler: 0.5430834552064411\n",
+            "KNN con Mean Imputer y RobustScaler: 0.5606248210159518\n",
+            "KNN con Mean Imputer y StandardScaler: 0.5560410805280659\n",
+            "KNN con Mean Imputer y MinMaxScaler: 0.5411920173660981\n",
+            "Mejor pipeline: KNN con Mean Imputer y MinMaxScaler\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import time\n",
+        "from sklearn.metrics import make_scorer\n",
+        "from sklearn.model_selection import GridSearchCV\n",
+        "from sklearn.pipeline import Pipeline\n",
+        "from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler\n",
+        "from sklearn.neighbors import KNeighborsClassifier\n",
+        "from sklearn.impute import SimpleImputer\n",
+        "from sklearn.tree import DecisionTreeClassifier\n",
+        "\n",
+        "# Definir los parámetros que quieres optimizar\n",
+        "param_grid = {\n",
+        "    \"knn__n_neighbors\": [3, 5, 7, 9, 11],  # Número de vecinos para KNN\n",
+        "    \"knn__weights\": ['uniform', 'distance'],  # Método de ponderación\n",
+        "    \"knn__metric\": ['euclidean', 'manhattan', 'chebyshev'],  # Distancia\n",
+        "}\n",
+        "\n",
+        "# 3. Configurar el GridSearchCV\n",
+        "grid_search_KNN = GridSearchCV(best_pipeline, param_grid, cv=3, n_jobs=-1, scoring=\"balanced_accuracy\", verbose=3)\n",
+        "\n",
+        "# 4. Medir el tiempo de entrenamiento\n",
+        "start_time = time.time()\n",
+        "\n",
+        "# Ajustar los hiperparámetros\n",
+        "grid_search_KNN.fit(x_train, y_train)\n",
+        "\n",
+        "# 5. Calcular el tiempo de entrenamiento\n",
+        "end_time = time.time()\n",
+        "training_time = end_time - start_time\n",
+        "\n",
+        "# 6. Mostrar los mejores hiperparámetros encontrados\n",
+        "print(f\"Mejores hiperparámetros para KNN: {grid_search_KNN.best_params_}\")\n",
+        "\n",
+        "# 7. Obtener el mejor modelo después de HPO\n",
+        "best_model_knn = grid_search_KNN.best_estimator_\n",
+        "\n",
+        "#Ajuste de Hiperparametros para árboles\n",
+        "\n",
+        "best_imputer = best_pipeline.named_steps[\"imputer\"]\n",
+        "best_scaler = best_pipeline.named_steps[\"scaler\"]\n",
+        "\n",
+        "best_pipeline_tree = Pipeline([\n",
+        "    (\"imputer\", best_imputer),\n",
+        "    (\"scaler\", best_scaler),\n",
+        "    (\"tree\", DecisionTreeClassifier())\n",
+        "])\n",
+        "\n",
+        "param_grid_tree = {\n",
+        "    \"tree__max_depth\": [3, 5, 10, 15, None],  # Profundidad máxima\n",
+        "    \"tree__min_samples_split\": [2, 5, 10],  # Mínimo de muestras para dividir\n",
+        "    \"tree__min_samples_leaf\": [1, 2, 5]  # Mínimo de muestras en una hoja\n",
+        "}\n",
+        "\n",
+        "grid_search_tree = GridSearchCV(best_pipeline_tree, param_grid_tree, cv=3, n_jobs=-1, scoring=\"balanced_accuracy\", verbose=3)\n",
+        "grid_search_tree.fit(x_train, y_train)\n",
+        "\n",
+        "print(f\"Mejores hiperparámetros para Árbol: {grid_search_tree.best_params_}\")\n",
+        "\n",
+        "best_model_tree = grid_search_tree.best_estimator_\n",
+        "\n",
+        "\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "1Jzw3l2hKjuE",
+        "outputId": "0b40a841-9fa0-4d10-c8c3-b9ade28f353f"
+      },
+      "execution_count": 23,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Fitting 3 folds for each of 30 candidates, totalling 90 fits\n",
+            "Mejores hiperparámetros para KNN: {'knn__metric': 'manhattan', 'knn__n_neighbors': 3, 'knn__weights': 'distance'}\n",
+            "Fitting 3 folds for each of 45 candidates, totalling 135 fits\n",
+            "Mejores hiperparámetros para Árbol: {'tree__max_depth': None, 'tree__min_samples_leaf': 1, 'tree__min_samples_split': 2}\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Evaluación Externa\n",
+        "De la evaluación interna realizada se puede concluir que hubo una combinación que fue un poco más acertada que las demás. Esta combinación es una normalización con RobustScaler y una imputación con la mediana. Ahora se realiza la estimación del desempeño con respecto a la variable. Las ,étricas que vamos a utilizar para analizar el desempeño son: balanced accuracy, TPR (accuracy de la clase positiva), TNR (accuracy de la clase negativa) y accuracy. Para facilitar el entendimiento de las métricas utilizaremos una matrix de confusión."
+      ],
+      "metadata": {
+        "id": "eUmC_meJsx7P"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.metrics import confusion_matrix, balanced_accuracy_score, accuracy_score\n",
+        "from sklearn.model_selection import cross_val_predict\n",
+        "import matplotlib.pyplot as plt\n",
+        "import seaborn as sns\n",
+        "\n",
+        "#y_pred = cross_val_predict(pipeline_K_M_A, x_train, y_train, cv=inner)\n",
+        "\n",
+        "best_model_knn.fit(x_train, y_train)\n",
+        "y_pred_knn = best_model_knn.predict(x_test)\n",
+        "\n",
+        "best_model_tree.fit(x_train, y_train)\n",
+        "y_pred_tree = best_model_tree.predict(x_test)\n",
+        "\n",
+        "# Calcular la matriz de confusión para KNN y Árboles\n",
+        "cm_knn = confusion_matrix(y_test, y_pred_knn)\n",
+        "cm_tree = confusion_matrix(y_test, y_pred_tree)\n",
+        "\n",
+        "TP_KNN = cm_knn[1, 1]  # Verdaderos positivos\n",
+        "TN_KNN = cm_knn[0, 0]  # Verdaderos negativos\n",
+        "FP_KNN = cm_knn[0, 1]  # Falsos positivos\n",
+        "FN_KNN = cm_knn[1, 0]  # Falsos negativos\n",
+        "\n",
+        "# Calcular las métricas de KNN\n",
+        "accuracy_KNN = accuracy_score(y_test, y_pred_knn)\n",
+        "balanced_accuracy_KNN = balanced_accuracy_score(y_test, y_pred_knn)\n",
+        "TPR_KNN = TP_KNN / (TP_KNN + FN_KNN)  # Sensitividad (Proporción positivas clasificadas correctamente)\n",
+        "TNR_KNN = TN_KNN / (TN_KNN + FP_KNN)  # Especificidad (Proporción clasificadas postivas que si los son)\n",
+        "\n",
+        "# Calcular la matriz de confusión para Árboles\n",
+        "cm_tree = confusion_matrix(y_test, y_pred_tree)\n",
+        "TP_tree = cm_tree[1, 1]  # Verdaderos positivos\n",
+        "TN_tree = cm_tree[0, 0]  # Verdaderos negativos\n",
+        "FP_tree = cm_tree[0, 1]  # Falsos positivos\n",
+        "FN_tree = cm_tree[1, 0]  # Falsos negativos\n",
+        "\n",
+        "# Calcular las métricas de Árboles\n",
+        "accuracy_tree = accuracy_score(y_test, y_pred_tree)\n",
+        "balanced_accuracy_tree = balanced_accuracy_score(y_test, y_pred_tree)\n",
+        "TPR_tree = TP_tree / (TP_tree + FN_tree)  # Sensitividad (Proporción positivas clasificadas correctamente)\n",
+        "TNR_tree = TN_tree / (TN_tree + FP_tree)  # Especificidad (Proporción clasificadas postivas que si los son)\n",
+        "\n",
+        "# Guardar los resultados\n",
+        "metricas_KNN= {}\n",
+        "metricas_tree= {}\n",
+        "\n",
+        "# Imprimir el nombre del mejor modelo y sus hiperparámetros de KNN\n",
+        "print(f\"Mejor modelo de KNN: {grid_search_KNN.best_estimator_}\")\n",
+        "\n",
+        "metricas_KNN[\"Mejor modelo KNN: \"] = {\n",
+        "    \"Accuracy\": accuracy_KNN,\n",
+        "    \"Balanced Accuracy\": balanced_accuracy_KNN,\n",
+        "    \"TPR (Sensitivity)\": TPR_KNN,\n",
+        "    \"TNR (Specificity)\": TNR_KNN\n",
+        "}\n",
+        "# Mostrar los resultados\n",
+        "for name, metrics in metricas_KNN.items():\n",
+        "    print(f\"{name}\")\n",
+        "    if isinstance(metrics, dict):  # Verificamos si el valor es un diccionario\n",
+        "        for metric, value in metrics.items():\n",
+        "            print(f\"  {metric}: {value}\")\n",
+        "    else:  # Si es un valor numérico\n",
+        "        print(f\"  Score: {metrics}\")\n",
+        "\n",
+        "\n",
+        "# Imprimir el nombre del mejor modelo y sus hiperparámetros de Árboles\n",
+        "print(f\"Mejor modelo de Árboles: {grid_search_tree.best_estimator_}\")\n",
+        "\n",
+        "metricas_tree[\"\\nMejor modelo Árboles: \"] = {\n",
+        "    \"Accuracy\": accuracy_tree,\n",
+        "    \"Balanced Accuracy\": balanced_accuracy_tree,\n",
+        "    \"TPR (Sensitivity)\": TPR_tree,\n",
+        "    \"TNR (Specificity)\": TNR_tree\n",
+        "}\n",
+        "\n",
+        "\n",
+        "# Mostrar los resultados\n",
+        "for name, metrics in metricas_tree.items():\n",
+        "    print(f\"{name}\")\n",
+        "    if isinstance(metrics, dict):  # Verificamos si el valor es un diccionario\n",
+        "        for metric, value in metrics.items():\n",
+        "            print(f\"  {metric}: {value}\")\n",
+        "    else:  # Si es un valor numérico\n",
+        "        print(f\"  Score: {metrics}\")\n",
+        "\n",
+        "plt.figure(figsize=(12, 5))\n",
+        "# Dibujar la matriz de confusión de KNN\n",
+        "plt.subplot(1, 2, 1)\n",
+        "sns.heatmap(cm_knn, annot=True, fmt=\"d\", cmap=\"Blues\", xticklabels=[\"No\", \"Yes\"], yticklabels=[\"No\", \"Yes\"])\n",
+        "plt.title(\"Matriz de Confusión KNN\")\n",
+        "plt.xlabel(\"Predicción\")\n",
+        "plt.ylabel(\"Verdadero\")\n",
+        "\n",
+        "# Dibujar la matriz de confusión de Árboles\n",
+        "plt.subplot(1, 2, 2)\n",
+        "sns.heatmap(cm_tree, annot=True, fmt=\"d\", cmap=\"Blues\", xticklabels=[\"No\", \"Yes\"], yticklabels=[\"No\", \"Yes\"])\n",
+        "plt.title(\"Matriz de Confusión Árboles\")\n",
+        "plt.xlabel(\"Predicción\")\n",
+        "plt.ylabel(\"Verdadero\")\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 739
+        },
+        "id": "ellc-_DUu40V",
+        "outputId": "98b1e2ea-ece7-4e1e-d71f-66b18f54ae1e"
+      },
+      "execution_count": 26,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Mejor modelo de KNN: Pipeline(steps=[('imputer', SimpleImputer()), ('scaler', RobustScaler()),\n",
+            "                ('knn',\n",
+            "                 KNeighborsClassifier(metric='manhattan', n_neighbors=3,\n",
+            "                                      weights='distance'))])\n",
+            "Mejor modelo KNN: \n",
+            "  Accuracy: 0.926530612244898\n",
+            "  Balanced Accuracy: 0.8718469925159382\n",
+            "  TPR (Sensitivity): 0.7911392405063291\n",
+            "  TNR (Specificity): 0.9525547445255474\n",
+            "Mejor modelo de Árboles: Pipeline(steps=[('imputer', SimpleImputer()), ('scaler', RobustScaler()),\n",
+            "                ('tree', DecisionTreeClassifier())])\n",
+            "\n",
+            "Mejor modelo Árboles: \n",
+            "  Accuracy: 0.9030612244897959\n",
+            "  Balanced Accuracy: 0.8629692937879208\n",
+            "  TPR (Sensitivity): 0.8037974683544303\n",
+            "  TNR (Specificity): 0.9221411192214112\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<Figure size 1200x500 with 4 Axes>"
+            ],
+            "image/png": "iVBORw0KGgoAAAANSUhEUgAABI0AAAHqCAYAAACJAb5xAAAAOnRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHZlcnNpb24zLjEwLjAsIGh0dHBzOi8vbWF0cGxvdGxpYi5vcmcvlHJYcgAAAAlwSFlzAAAPYQAAD2EBqD+naQAAcitJREFUeJzt3XlcVGX///H3gIgKAmoCeqe4L5jmVkpupSSapiZpGqWmWRnuZX4py6UStUxzbzG01CzTrNzRSktxLcs99dbIFLQMyQ0Ezu+P+TF30+AIOjAM83rej/N4xDnXOeeawW7fXedznctkGIYhAAAAAAAA4B88nN0BAAAAAAAAFD4MGgEAAAAAAMAGg0YAAAAAAACwwaARAAAAAAAAbDBoBAAAAAAAABsMGgEAAAAAAMAGg0YAAAAAgJs2d+5crVixwtndAJAPijm7AwAAAAAA1zRr1ixNnz5dW7dudXZXAOQDKo0AuI0VK1bozTffVGZmprO7AgAAkO/yO/ukpaUpNTVV8fHxCgoKypd7AHAuBo2APBo3bpxMJlO+3sNkMmncuHH5eo+C9sYbb6hatWry9PRUw4YNHX79fv36qUqVKtc9vm3bNkVFRSk0NFSenp4Ovz8AAEUV2efmuEP28fb21osvvqiqVave1Pkmk0mDBw92WH++/fZbmUwmffvttw67JuDuGDRCobVgwQKZTCaZTCZ9//33NscNw1ClSpVkMpnUuXPnm7rHxIkTtXLlylvsqWvIzMxUXFyc7r33XpUtW1be3t6qUqWKnnjiCe3evTtf771hwwa98MILatGiheLi4jRx4sR8vd+//fnnn+rVq5dmzJihBx54wKHXPnnypEwmk958802r/YZh6Omnn7YKwdlBxmQyac+ePTbX6tevn3x9fa323XvvvTKZTHrwwQdzfW8AgGsi+zgW2Sd/ss8/HTp0SCaTSSVKlFBKSkq+3QeA8zBohEKvRIkSWrJkic3+zZs369SpU/L29r7pa99McBozZoyuXLly0/d0hitXrqhz587q37+/DMPQiy++qLlz56pPnz5KSEjQ3XffrVOnTuXb/b/++mt5eHho/vz56tOnT76El/fee09HjhzJ8diPP/6o1157TQMHDnT4fXNiGIaeffZZvfvuu3r55ZdzfHKa16epq1atynGgCQBQ9JB9bh3Zp2Cyz6JFixQcHCxJ+uyzz/L1XgCcgxdho9B74IEHtGzZMs2YMUPFiv3vj+ySJUvUpEkT/fHHHwXSj0uXLsnHx0fFihWz6ocrGDVqlNatW6dp06Zp+PDhVsfGjh2radOm5ev9z549q5IlS6p48eL5dg8vL6/rHgsPD8+3++ZkyJAhmjdvnl566SVNmDDB5njDhg21atUq/fDDD2rcuPENr1e5cmX9/fffGj9+vL788sv86DIAoBAh+9w6sk/+Zx/DMLRkyRI9+uijOnHihBYvXqwnn3wyV+ddvXpVJUuWzPc+Arh1VBqh0Ovdu7f+/PNPxcfHW/alp6frs88+06OPPprjOW+++abuuecelStXTiVLllSTJk1snn6YTCZdunRJCxcutJSC9+vXT9L/5u4fPHhQjz76qMqUKaOWLVtaHcvWr18/y/n/3m5UTZKWlqYRI0aofPnyKl26tLp06XLdp16///67+vfvr6CgIHl7e6tevXr64IMPbvT16dSpU3rnnXd0//3324QmSfL09NTzzz+v22+/3bLvxx9/VMeOHeXn5ydfX1+1a9dO27dvtzovu4R+69atGjlypMqXLy8fHx899NBDOnfunKWdyWRSXFycLl26ZPleFixYYJlatWDBAps+/fu7+/vvvzV8+HBVqVJF3t7eCgwM1P33368ffvjB0ianef2XLl3Sc889p0qVKsnb21u1a9fWm2++KcMwbO43ePBgrVy5UnfccYfl+123bt0Nv99/GzZsmGbPnq2YmBi99tprObYZMmSIypQpk+tqo9KlS2vEiBH66quvrD4zAKBoIvuYkX0Kd/bZunWrTp48qV69eqlXr17asmVLjr/LKlWqqHPnzlq/fr2aNm2qkiVL6p133rFqs3jxYtWuXVslSpRQkyZNtGXLFpvr5OZ3dD07duxQhw4d5O/vr1KlSqlNmzY2q73l5jsH3JFrPTKAW6pSpYrCwsL08ccfq2PHjpKktWvX6sKFC5a52v/29ttvq0uXLoqKilJ6erqWLl2qHj16aNWqVerUqZMk6aOPPtKTTz6pu+++W0899ZQkqXr16lbX6dGjh2rWrKmJEyfa/GWb7emnn7Z5mrNu3TotXrxYgYGBdj/bk08+qUWLFunRRx/VPffco6+//trSv39KTk5W8+bNLX/Bly9fXmvXrtWAAQOUmpqaYyDKtnbtWmVkZOjxxx+325dsBw4cUKtWreTn56cXXnhBXl5eeuedd3Tvvfdq8+bNatasmVX77AGQsWPH6uTJk5o+fboGDx6sTz75RJL5e3733Xe1c+dOvf/++5Kke+65J1d9yfbMM8/os88+0+DBgxUaGqo///xT33//vQ4dOnTdSh3DMNSlSxd98803GjBggBo2bKj169dr1KhR+v33322eMH7//fdasWKFnn32WZUuXVozZsxQZGSkEhMTVa5cuVz1c8SIEZoxY4ZGjx5t990Ffn5+GjFihF555ZVcVxsNGzZM06ZN07hx46g2AoAijuxD9nGF7LN48WJVr15dd911l+644w6VKlVKH3/8sUaNGmXT9siRI+rdu7eefvppDRw4ULVr17Yc27x5sz755BMNHTpU3t7emjNnjjp06KCdO3fqjjvukJT339E/ff311+rYsaOaNGmisWPHysPDQ3FxcWrbtq2+++473X333Tf9nQNuwQAKqbi4OEOSsWvXLmPWrFlG6dKljcuXLxuGYRg9evQw7rvvPsMwDCMkJMTo1KmT1bnZ7bKlp6cbd9xxh9G2bVur/T4+Pkbfvn1t7j127FhDktG7d+/rHrueo0ePGv7+/sb9999vZGRkXLfd3r17DUnGs88+a7X/0UcfNSQZY8eOtewbMGCAUaFCBeOPP/6waturVy/D39/f5vP+04gRIwxJxo8//njdNv/UrVs3o3jx4sbx48ct+06fPm2ULl3aaN26tWVf9u8nPDzcyMrKsrqfp6enkZKSYtnXt29fw8fHx+o+J06cMCQZcXFxNn349+f39/c3oqOj7fa7b9++RkhIiOXnlStXGpKM1157zardww8/bJhMJuPYsWNW9ytevLjVvp9++smQZMycOdPufbM/R0hIiCHJGDVq1HXbfvPNN4YkY9myZUZKSopRpkwZo0uXLlaf4d/fU5s2bYx69eoZhmEY48ePNyQZe/bssbr3G2+8YbePAADXQPYZa9lH9im82ccwzH++ypUrZ7z00kuWfY8++qhx55132rTNzkjr1q2zOSbJkGTs3r3bsu/XX381SpQoYTz00EOWfbn9HWVnrW+++cYwDMPIysoyatasaURERFj9zi5fvmxUrVrVuP/++y37cvOdA+6I6WlwCT179tSVK1e0atUq/f3331q1atV1y7MlWc2R/uuvv3ThwgW1atUqz+WlzzzzTJ7aX7p0SQ899JDKlCmjjz/+2O7ypmvWrJEkDR061Gr/v5+cGYah5cuX68EHH5RhGPrjjz8sW0REhC5cuGD3c6WmpkoyT3G6kczMTG3YsEHdunVTtWrVLPsrVKigRx99VN9//73letmeeuopq5L1Vq1aKTMzU7/++usN75dbAQEB2rFjh06fPp3rc9asWSNPT0+b7/e5556TYRhau3at1f7w8HCrp60NGjSQn5+f/vvf/+bqfsnJyZKkWrVq5aq9v7+/hg8fri+//FI//vhjrs4ZNmyYypQpo/Hjx+eqPQDAdZF9yD6FOfusXbtWf/75p3r37m3Z17t3b/300086cOCATfuqVasqIiIix2uFhYWpSZMmlp8rV66srl27av369crMzLyp31G2vXv36ujRo3r00Uf1559/Wv4cXbp0Se3atdOWLVuUlZUl6ea+c8AdMGgEl1C+fHmFh4dryZIlWrFihTIzM/Xwww9ft/2qVavUvHlzlShRQmXLllX58uU1d+5cXbhwIU/3rVq1ap7aDxw4UMePH9fnn39+w7LeX3/9VR4eHjZl4f8s15Wkc+fOKSUlRe+++67Kly9vtT3xxBOSzC9bvB4/Pz9J5nnaN3Lu3DldvnzZpg+SVLduXWVlZem3336z2l+5cmWrn8uUKSPJHFgdZcqUKdq/f78qVaqku+++W+PGjbthoPn1119VsWJFm8BYt25dy/F/+vfnkMyfJbefY/To0brrrrv09NNP53r1kGHDhikgICDX7za6mYEmAIBrIvuQfQpz9lm0aJGqVq0qb29vHTt2TMeOHVP16tVVqlQpLV682Ka9vT9XNWvWtNlXq1YtXb58WefOnbup31G2o0ePSpL69u1r82fp/fffV1pamuXfkZv5zgF3wDuN4DIeffRRDRw4UElJSerYsaMCAgJybPfdd9+pS5cuat26tebMmaMKFSrIy8tLcXFxOS5fa09eVnV4++239fHHH2vRokVq2LBhnu5jT/bTj8cee0x9+/bNsU2DBg2ue36dOnUkSfv27XNov7Jd74micZ33IGT75xO6f8rMzLTZ17NnT7Vq1Uqff/65NmzYoDfeeEOTJ0/WihUrLO96uFU3+zmy+fr6au3atWrdurWioqLk5+en9u3b2z0nexBo3Lhxeao2mjZtmsaPH6/p06fn6hwAgGsi+5B9CmP2SU1N1VdffaWrV6/mOOCz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dOmKEDiYg/OSqyoUlUbjx4/XI488oi1btljm6G/dulWbNm3KMRz9U05PNz2D7pJXhbvzrb/IncoVyqhts9rq9fz/ph1Uvf02DerVRo0jX9Oh/5qfBu/75Xe1aFxdTz/SWkNfX2pp+2fKJf2ZcknHEs/qyIkkHVv/mpo1qKodP58o8M8CFFZeXsVVuXKIJCm03h06cGC/Pl70ocaMnaCwFi311bp4/fXXXyrm6anSfn4Kb9NSER0qObnXcDZHB2Jvb295e3vnqm2FChUUGhpqta9u3bpavny5JCk4OFiSlJycrAoVKljaJCcnq2HDhpY2Z8+etbpGRkaGzp8/bzm/KLqVvCSRmQqrnPJSTnbtOylJql6pvE6c+kOPdGyqyhXLqk3fqZaV9PrGLNCZLVP04L0NtGw9U5GBbLfdVl5VqlW32lelanV9uylekrT3xz366/x5dXugneV4ZmamZrw1RUsXf6iVazYWaH9RODCAaFYoHjdHRkZqx44dKleunFauXKmVK1fqtttu086dO/XQQw/ZPTenp5vFgpoUUM9hz+NdwnT2/N9a+90By75SJczvV8n61zLBmZmGPOz8S+nhYT5W3KtQjHMChZaRlaX09HSrfWXKlFFpPz/t3LFd58//qTb33eek3gFSixYtdOTIEat9v/zyi0JCzIOfVatWVXBwsDZt2mQ5npqaqh07digsLEySFBYWppSUFO3Z87//KP7666+VlZWlZs2aFcCncI5byUsSmamwyikv5SR7ldmkP8zVSKVKFFdWlmEZMJLM+cowZDdTAe6oQcPGSvzV+sHzb4knFVzBPNOhY6cuWvTpSn24dIVlK18+UFF9+uvtOfYHdIGirtD8F3iTJk20ePHiPJ+X09NNk4eno7qFm2QymdSna3MtXrXDal79kZNJOpZ4VrPG9FbMW5/rzwuX1OW+BmrXvLa6DzNPTbjrjhA1qReibT8eV8rfl1X19vIa+2wnHU88R5UR8A8zpk1Vi1atVaFCBV26dElrV6/S7l07Necd8/suvvh8uapWq64yZcrq55/26o1JryuqT19VqVrNyT2HsznzydmIESN0zz33aOLEierZs6d27typd999V++++66lb8OHD9drr72mmjVrqmrVqnr55ZdVsWJFdevWTZK5MqlDhw6WaW3Xrl3T4MGD1atXryK7clq2m81LEpmpMLpe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\n"
+          },
+          "metadata": {}
+        }
+      ]
+    }
+  ]
+}
